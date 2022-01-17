@@ -20,6 +20,8 @@ constexpr int kShowCandidates = 25;
 // 3^5
 constexpr int kQuinticOfThree = 243;
 
+constexpr int kThreads = 4;
+
 std::vector<std::string> dict;
 std::vector<std::string> cand;
 
@@ -88,31 +90,56 @@ int Guess(const std::string &guess, const std::string &answer) {
 // WORDLE.
 std::vector<std::pair<int, std::string>> FindBestQuery(
     int num_cand = kCandidateQuery) {
-  std::vector<std::pair<int, std::string>> cand_query;
-  for (const auto &query : dict) {
-    bool cut_early = false;
+  auto find_best = [&](int st, int ed,
+                       std::vector<std::pair<int, std::string>> &cand_query) {
+    for (int i = st; i < ed; ++i) {
+      const auto &query = dict[i];
+      bool cut_early = false;
 
-    int groups[kQuinticOfThree] = {};
-    for (const auto &c : cand) {
-      int code = Guess(query, c);
-      ++groups[code];
+      int groups[kQuinticOfThree] = {};
+      for (const auto &c : cand) {
+        int code = Guess(query, c);
+        ++groups[code];
 
-      if (cand_query.size() == num_cand and
-          groups[code] > cand_query.back().first) {
-        cut_early = true;
-        break;
+        if (cand_query.size() == num_cand and
+            groups[code] > cand_query.back().first) {
+          cut_early = true;
+          break;
+        }
+      }
+      if (cut_early) {
+        continue;
+      }
+      cand_query.push_back(std::make_pair(
+          *std::max_element(groups, groups + kQuinticOfThree), query));
+      std::sort(cand_query.begin(), cand_query.end());
+      if (static_cast<int>(cand_query.size()) > num_cand) {
+        cand_query.resize(num_cand);
       }
     }
-    if (cut_early) {
-      continue;
-    }
-    cand_query.push_back(std::make_pair(
-        *std::max_element(groups, groups + kQuinticOfThree), query));
-    std::sort(cand_query.begin(), cand_query.end());
-    if (static_cast<int>(cand_query.size()) > num_cand) {
-      cand_query.resize(num_cand);
+  };
+  std::vector<std::pair<int, std::string>> cand_query;
+#ifdef MULTI_THREAD
+  std::vector<std::pair<int, std::string>> cands[kThreads];
+  std::vector<std::thread> threads;
+  for (int i = 0, st = 0; i < kThreads; ++i) {
+    int ed = dict.size() * (i + 1) / kThreads;
+    threads.emplace_back(find_best, st, ed, std::ref(cands[i]));
+    st = ed;
+  }
+  for (int i = 0; i < kThreads; ++i) {
+    threads[i].join();
+    for (const auto &c : cands[i]) {
+      cand_query.push_back(c);
     }
   }
+  std::sort(cand_query.begin(), cand_query.end());
+  if (static_cast<int>(cand_query.size()) > num_cand) {
+    cand_query.resize(num_cand);
+  }
+#else
+  find_best(0, dict.size(), cand_query);
+#endif
   return cand_query;
 }
 
@@ -224,11 +251,11 @@ void Solve() {
       exit(0);
     }
 
-    clock_t s = clock();
+    auto s = std::chrono::system_clock::now();
     std::vector<std::pair<int, std::string>> queries = FindBestQuery();
-    clock_t t = clock();
-    printf("(spent %.3f seconds)\n",
-           static_cast<double>(t - s) / CLOCKS_PER_SEC);
+    auto t = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsed_seconds = t - s;
+    printf("(spent %.3f seconds)\n", elapsed_seconds.count());
 
     for (const auto &query : queries) {
       printf("%s (largest groups left = %d)\n", query.second.c_str(),

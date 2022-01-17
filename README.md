@@ -7,6 +7,10 @@ A solver to solve the daily puzzle from Wordle
 ```console
 $ g++ -O2 wordle_solver.cpp
 $ ./a.out
+
+# Multi thread
+$ g++ -O2 wordle_solver.cpp -pthread -DMULTI_THREAD
+$ ./a.out
 ```
 
 ### Note
