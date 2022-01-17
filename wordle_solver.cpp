@@ -289,6 +289,9 @@ int Solve(int max_tries = kTries) {
     std::string queried = GetActualQuery();
     int code = GetQueriedResult();
 #endif
+    if (code == kQuinticOfThree - 1) {
+      return turn + 1;
+    }
     FilterCand(queried, code);
   }
   Printf("Failed to guess the correct word within %d tries...\n", kTries);

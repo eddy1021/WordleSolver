@@ -28,12 +28,12 @@ By using this solver, following is the distribution of number of tries needed
 for each answer in `5letters_distinct_words.txt`:
 
 ```
-1 try: 0
-2 tries: 14
-3 tries: 1375
-4 tries: 7305
-5 tries: 4833
-6 tries: 145
+1 try: 1
+2 tries: 19
+3 tries: 1387
+4 tries: 7287
+5 tries: 4832
+6 tries: 144
 ```
 
 All word can be found in 6 tries.
