@@ -64,16 +64,19 @@ int Guess(const std::string &guess, const std::string &answer) {
       used[i] = true;
     }
   }
+  int has = 0;
   for (int i = 0; i < kLen; ++i) {
-    for (int j = 0; j < kLen; ++j) {
-      if (used[j]) {
-        continue;
-      }
-      if (guess[i] == answer[j]) {
-        encode += base3[i];
-        used[j] = true;
-        break;
-      }
+    if (!used[i]) {
+      has |= 1 << (answer[i] - 'a');
+    }
+  }
+  for (int i = 0; i < kLen; ++i) {
+    if (guess[i] == answer[i]) {
+      continue;
+    }
+    if ((has >> (guess[i] - 'a')) & 1) {
+      has &= ~(1 << (guess[i] - 'a'));
+      encode += base3[i];
     }
   }
   return encode;
