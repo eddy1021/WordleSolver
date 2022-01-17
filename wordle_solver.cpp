@@ -176,10 +176,20 @@ std::string GetActualQuery() {
 int GetQueriedResult() {
   int encode = 0;
   while (true) {
-    printf(
-        "Please enter the result separated by space (0 for not in any spot, 1 "
-        "for in wrong spot, 2 for in correct spot). For example, `2 2 0 0 "
-        "1`: ");
+    // print out the message to prompt the user input the response from Wordle.
+    auto print_message = []() {
+      static bool first = true;
+      printf("Please enter the result separated by space");
+      // print out the detailed message only for the first time.
+      if (first) {
+        printf(
+            " (0 for not in any spot, 1 for in wrong spot, 2 for in correct "
+            "spot). For example, `2 2 0 0 1`");
+        first = false;
+      }
+      printf(": ");
+    };
+    print_message();
     fflush(stdout);
 
     std::string line;
