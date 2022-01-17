@@ -49,6 +49,9 @@ void Init() {
   for (int i = 1; i < kLen; ++i) {
     base3[i] = base3[i - 1] * 3;
   }
+
+  srand(time(0));
+  random_shuffle(dict.begin(), dict.end());
 }
 
 // Returns the encoded results if we guess `guess` and the answer is `answer`.
@@ -84,9 +87,21 @@ std::vector<std::pair<int, std::string>> FindBestQuery(
     int num_cand = kCandidateQuery) {
   std::vector<std::pair<int, std::string>> cand_query;
   for (const auto &query : dict) {
+    bool cut_early = false;
+
     int groups[kQuinticOfThree] = {};
     for (const auto &c : cand) {
-      ++groups[Guess(query, c)];
+      int code = Guess(query, c);
+      ++groups[code];
+
+      if (cand_query.size() == num_cand and
+          groups[code] > cand_query.back().first) {
+        cut_early = true;
+        break;
+      }
+    }
+    if (cut_early) {
+      continue;
     }
     cand_query.push_back(std::make_pair(
         *std::max_element(groups, groups + kQuinticOfThree), query));
