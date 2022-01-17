@@ -26,6 +26,17 @@ std::vector<std::string> cand;
 
 int base3[kLen];
 
+#ifdef TEST
+std::string test_answer;
+#endif  // TEST
+
+template <typename... Args>
+void Printf(const char *format, Args... args) {
+#ifndef TEST
+  printf(format, args...);
+#endif
+}
+
 // Sets up the list of words for candidate queries and answers.
 void SetUp(const char word_file[], std::vector<std::string> *vec) {
   FILE *in = fopen(word_file, "r");
@@ -43,9 +54,8 @@ void SetUp(const char word_file[], std::vector<std::string> *vec) {
   }
 }
 
-void Init() {
+void Prepare() {
   SetUp(k5LettersWords, &dict);
-  SetUp(kAnswerCands, &cand);
   base3[0] = 1;
   for (int i = 1; i < kLen; ++i) {
     base3[i] = base3[i - 1] * 3;
@@ -54,6 +64,8 @@ void Init() {
   srand(time(0));
   random_shuffle(dict.begin(), dict.end());
 }
+
+void Init() { SetUp(kAnswerCands, &cand); }
 
 // Returns the encoded results if we guess `guess` and the answer is `answer`.
 int Guess(const std::string &guess, const std::string &answer) {
@@ -146,17 +158,17 @@ std::vector<std::pair<int, std::string>> FindBestQuery(
 std::string GetActualQuery() {
   std::string query;
   while (true) {
-    printf("Please enter the chosen query: ");
+    Printf("Please enter the chosen query: ");
     fflush(stdout);
     std::getline(std::cin, query);
     if (query.length() != kLen) {
-      printf("The query must be a word with length of 5!\n");
+      Printf("The query must be a word with length of 5!\n");
       continue;
     }
     bool failed = false;
     for (int i = 0; i < kLen; ++i) {
       if (!isalpha(query[i])) {
-        printf("The query must contain English letter only!\n");
+        Printf("The query must contain English letter only!\n");
         failed = true;
         break;
       }
@@ -179,15 +191,15 @@ int GetQueriedResult() {
     // print out the message to prompt the user input the response from Wordle.
     auto print_message = []() {
       static bool first = true;
-      printf("Please enter the result separated by space");
+      Printf("Please enter the result separated by space");
       // print out the detailed message only for the first time.
       if (first) {
-        printf(
+        Printf(
             " (0 for not in any spot, 1 for in wrong spot, 2 for in correct "
             "spot). For example, `2 2 0 0 1`");
         first = false;
       }
-      printf(": ");
+      Printf(": ");
     };
     print_message();
     fflush(stdout);
@@ -203,13 +215,13 @@ int GetQueriedResult() {
     }
 
     if (nums.size() != kLen) {
-      printf("Expected %d [0,1,2] values\n", kLen);
+      Printf("Expected %d [0,1,2] values\n", kLen);
       continue;
     }
     bool failed = false;
     for (int i = 0; i < kLen; ++i) {
       if (nums[i] < 0 or nums[i] > 2) {
-        printf("Values must be 0, 1, or 2\n");
+        Printf("Values must be 0, 1, or 2\n");
         failed = true;
         break;
       }
@@ -227,9 +239,7 @@ int GetQueriedResult() {
 }
 
 // Filters out the possible candidates left.
-void FilterCand() {
-  std::string queried = GetActualQuery();
-  int code = GetQueriedResult();
+void FilterCand(std::string queried, int code) {
   std::vector<std::string> left_cand;
   for (const auto &c : cand) {
     int res = Guess(queried, c);
@@ -240,44 +250,82 @@ void FilterCand() {
   cand.swap(left_cand);
 }
 
-void Solve() {
-  for (int turn = 0; turn < kTries; ++turn) {
-    printf("Guess #%d (%d candidates left):\n", turn,
+int Solve(int max_tries = kTries) {
+  for (int turn = 0; turn < max_tries; ++turn) {
+    Printf("Guess #%d (%d candidates left):\n", turn,
            static_cast<int>(cand.size()));
     if (cand.empty()) {
-      printf("No possible word in the list matched!!!\n");
-      exit(0);
+      Printf("No possible word in the list matched!!!\n");
+      return -2;
     }
     if (cand.size() <= kShowCandidates) {
-      printf("Candidates: ");
+      Printf("Candidates: ");
       for (const auto &c : cand) {
-        printf("%s ", c.c_str());
+        Printf("%s ", c.c_str());
       }
-      printf("\n");
+      Printf("\n");
     }
     if (cand.size() == 1u) {
-      printf("The only possible answer is: %s\n", cand[0].c_str());
-      exit(0);
+      Printf("The only possible answer is: %s\n", cand[0].c_str());
+      return turn + 1;
     }
 
     auto s = std::chrono::system_clock::now();
     std::vector<std::pair<int, std::string>> queries = FindBestQuery();
     auto t = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsed_seconds = t - s;
-    printf("(spent %.3f seconds)\n", elapsed_seconds.count());
+    Printf("(spent %.3f seconds)\n", elapsed_seconds.count());
 
     for (const auto &query : queries) {
-      printf("%s (largest groups left = %d)\n", query.second.c_str(),
+      Printf("%s (largest groups left = %d)\n", query.second.c_str(),
              query.first);
     }
     fflush(stdout);
 
-    FilterCand();
+#ifdef TEST
+    std::string queried = queries[0].second;
+    int code = Guess(queried, test_answer);
+#else
+    std::string queried = GetActualQuery();
+    int code = GetQueriedResult();
+#endif
+    FilterCand(queried, code);
   }
-  printf("Failed to guess the correct word within %d tries...\n", kTries);
+  Printf("Failed to guess the correct word within %d tries...\n", kTries);
+  return -1;
 }
 
 int main() {
+  Prepare();
+#ifdef TEST
+  std::vector<std::string> all_answers;
+  SetUp(kAnswerCands, &all_answers);
+  std::random_shuffle(all_answers.begin(), all_answers.end());
+
+  constexpr int kTest = 100;
+  int tries[kTries + 1] = {};
+  for (int i = 0; i < kTest; ++i) {
+    test_answer = all_answers[i];
+    printf("Trying #%d (answer = %s): ", i, test_answer.c_str());
+    Init();
+    int ret = Solve();
+    if (ret == -1) {
+      ++tries[0];
+      printf("Failed to find out in %d tries\n", kTries);
+    } else if (ret == -2) {
+      assert(false);
+    } else {
+      assert(1 <= ret and ret <= kTries);
+      ++tries[ret];
+      printf("%d tries\n", ret);
+    }
+  }
+  for (int i = 1; i <= kTries; ++i) {
+    printf("Tries %d: %d\n", i, tries[i]);
+  }
+  printf("Failed to found in %d tries: %d\n", kTries, tries[0]);
+#else
   Init();
   Solve();
+#endif
 }
