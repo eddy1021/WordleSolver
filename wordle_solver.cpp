@@ -206,7 +206,12 @@ void Solve() {
       exit(0);
     }
 
+    clock_t s = clock();
     std::vector<std::pair<int, std::string>> queries = FindBestQuery();
+    clock_t t = clock();
+    printf("(spent %.3f seconds)\n",
+           static_cast<double>(t - s) / CLOCKS_PER_SEC);
+
     for (const auto &query : queries) {
       printf("%s (largest groups left = %d)\n", query.second.c_str(),
              query.first);

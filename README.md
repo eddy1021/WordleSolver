@@ -5,9 +5,13 @@ A solver to solve the daily puzzle from Wordle
 ## Usage
 
 ```console
-$ g++ wordle_solver.cpp
+$ g++ -O2 wordle_solver.cpp
 $ ./a.out
 ```
+
+### Note
+
+It will take about several seconds for the first query.
 
 You can replace the wordlist of `5letters_words.txt` and
 `5letters_distinct_words.txt`. The former one will be taken as all possible
