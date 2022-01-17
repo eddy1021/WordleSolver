@@ -1,7 +1,7 @@
 // Author: eddy1021
 #include <bits/stdc++.h>
 
-// Game config of WORDLE(https://www.powerlanguage.co.uk/wordle/)
+// Game config of Wordle(https://www.powerlanguage.co.uk/wordle/)
 constexpr int kLen = 5;
 constexpr int kTries = 6;
 
@@ -9,8 +9,7 @@ constexpr int kTries = 6;
 constexpr char k5LettersWords[] = "5letters_words.txt";
 constexpr char kAnswerCands[] = "5letters_distinct_words.txt";
 
-// Show `kCandidateQuery` in case some are words are not in the wordlist of
-// wordle.
+// Show `kCandidateQuery` in case some words are not in the wordlist of Wordle.
 constexpr int kCandidateQuery = 3;
 
 // Show all the possible candidates when there are no more than
@@ -87,7 +86,7 @@ int Guess(const std::string &guess, const std::string &answer) {
 // Finds the current best queries which will result in minimum possible
 // largest candidate groups.
 // Returns top `num_cand` best queries in case some are not in the wordlist of
-// WORDLE.
+// Wordle.
 std::vector<std::pair<int, std::string>> FindBestQuery(
     int num_cand = kCandidateQuery) {
   auto find_best = [&](int st, int ed,
@@ -173,7 +172,7 @@ std::string GetActualQuery() {
   return query;
 }
 
-// Gets the results WORDLE responds.
+// Gets the results Wordle responds.
 int GetQueriedResult() {
   int encode = 0;
   while (true) {
@@ -265,6 +264,7 @@ void Solve() {
 
     FilterCand();
   }
+  printf("Failed to guess the correct word within %d tries...\n", kTries);
 }
 
 int main() {
