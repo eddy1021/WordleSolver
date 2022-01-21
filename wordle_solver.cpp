@@ -7,7 +7,6 @@ constexpr int kTries = 6;
 
 // Filtered wordlist
 constexpr char k5LettersWords[] = "5letters_words.txt";
-constexpr char kAnswerCands[] = "5letters_distinct_words.txt";
 
 // Show `kCandidateQuery` in case some words are not in the wordlist of Wordle.
 constexpr int kCandidateQuery = 3;
@@ -65,7 +64,7 @@ void Prepare() {
   random_shuffle(dict.begin(), dict.end());
 }
 
-void Init() { SetUp(kAnswerCands, &cand); }
+void Init() { SetUp(k5LettersWords, &cand); }
 
 // Returns the encoded results if we guess `guess` and the answer is `answer`.
 int Guess(const std::string &guess, const std::string &answer) {
@@ -302,7 +301,7 @@ int main() {
   Prepare();
 #ifdef TEST
   std::vector<std::string> all_answers;
-  SetUp(kAnswerCands, &all_answers);
+  SetUp(k5LettersWords, &all_answers);
   std::random_shuffle(all_answers.begin(), all_answers.end());
 
   constexpr int kTest = 100;
