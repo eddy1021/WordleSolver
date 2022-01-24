@@ -78,18 +78,18 @@ int Guess(const std::string &guess, const std::string &answer) {
       used[i] = true;
     }
   }
-  int has = 0;
+  int has[26] = {};
   for (int i = 0; i < kLen; ++i) {
     if (!used[i]) {
-      has |= 1 << (answer[i] - 'a');
+      ++has[answer[i] - 'a'];
     }
   }
   for (int i = 0; i < kLen; ++i) {
     if (guess[i] == answer[i]) {
       continue;
     }
-    if ((has >> (guess[i] - 'a')) & 1) {
-      has &= ~(1 << (guess[i] - 'a'));
+    if (has[guess[i] - 'a']) {
+      --has[guess[i] - 'a'];
       encode += base3[i];
     }
   }
@@ -105,7 +105,8 @@ struct Hint {
 // Returns true if `query` is a valid query in hard mode given the `hints`.
 bool Valid(const std::vector<Hint> &hints, const std::string &query) {
   for (const auto &hint : hints) {
-    int has = 0, matched = 0;
+    int has[26] = {};
+    int matched = 0;
     int code = hint.result;
     for (int i = 0; i < kLen; ++i) {
       if (code % 3 == 2) {
@@ -115,7 +116,7 @@ bool Valid(const std::vector<Hint> &hints, const std::string &query) {
           matched |= (1 << i);
         }
       } else if (code % 3 == 1) {
-        has |= (1 << (hint.query[i] - 'a'));
+        ++has[hint.query[i] - 'a'];
       }
       code /= 3;
     }
@@ -123,11 +124,11 @@ bool Valid(const std::vector<Hint> &hints, const std::string &query) {
       if ((matched >> i) & 1) {
         continue;
       }
-      if ((has >> (query[i] - 'a')) & 1) {
-        has &= ~(1 << (query[i] - 'a'));
+      if (has[query[i] - 'a']) {
+        --has[query[i] - 'a'];
       }
     }
-    if (has) {
+    if (std::accumulate(has, has + 26, 0) != 0) {
       return false;
     }
   }
