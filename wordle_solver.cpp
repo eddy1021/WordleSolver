@@ -20,6 +20,8 @@ constexpr int kQuinticOfThree = 243;
 
 constexpr int kThreads = 4;
 
+constexpr bool kHardMode = true;
+
 std::vector<std::string> dict;
 std::vector<std::string> cand;
 
@@ -94,16 +96,58 @@ int Guess(const std::string &guess, const std::string &answer) {
   return encode;
 }
 
+// contains the information of a query and the corresponding result.
+struct Hint {
+  std::string query;
+  int result;
+};
+
+// Returns true if `query` is a valid query in hard mode given the `hints`.
+bool Valid(const std::vector<Hint> &hints, const std::string &query) {
+  for (const auto &hint : hints) {
+    int has = 0, matched = 0;
+    int code = hint.result;
+    for (int i = 0; i < kLen; ++i) {
+      if (code % 3 == 2) {
+        if (query[i] != hint.query[i]) {
+          return false;
+        } else {
+          matched |= (1 << i);
+        }
+      } else if (code % 3 == 1) {
+        has |= (1 << (hint.query[i] - 'a'));
+      }
+      code /= 3;
+    }
+    for (int i = 0; i < kLen; ++i) {
+      if ((matched >> i) & 1) {
+        continue;
+      }
+      if ((has >> (query[i] - 'a')) & 1) {
+        has &= ~(1 << (query[i] - 'a'));
+      }
+    }
+    if (has) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // Finds the current best queries which will result in minimum possible
 // largest candidate groups.
 // Returns top `num_cand` best queries in case some are not in the wordlist of
 // Wordle.
 std::vector<std::pair<int, std::string>> FindBestQuery(
-    int num_cand = kCandidateQuery) {
+    const std::vector<Hint> &hints, int num_cand = kCandidateQuery) {
   auto find_best = [&](int st, int ed,
                        std::vector<std::pair<int, std::string>> &cand_query) {
     for (int i = st; i < ed; ++i) {
       const auto &query = dict[i];
+      if (kHardMode and not Valid(hints, query)) {
+        continue;
+      }
+
       bool cut_early = false;
 
       int groups[kQuinticOfThree] = {};
@@ -111,7 +155,7 @@ std::vector<std::pair<int, std::string>> FindBestQuery(
         int code = Guess(query, c);
         ++groups[code];
 
-        if (cand_query.size() == num_cand and
+        if (static_cast<int>(cand_query.size()) == num_cand and
             groups[code] > cand_query.back().first) {
           cut_early = true;
           break;
@@ -250,6 +294,8 @@ void FilterCand(std::string queried, int code) {
 }
 
 int Solve(int max_tries = kTries) {
+  std::vector<Hint> hints;
+
   for (int turn = 0; turn < max_tries; ++turn) {
     Printf("Guess #%d (%d candidates left):\n", turn,
            static_cast<int>(cand.size()));
@@ -270,7 +316,7 @@ int Solve(int max_tries = kTries) {
     }
 
     auto s = std::chrono::system_clock::now();
-    std::vector<std::pair<int, std::string>> queries = FindBestQuery();
+    std::vector<std::pair<int, std::string>> queries = FindBestQuery(hints);
     auto t = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsed_seconds = t - s;
     Printf("(spent %.3f seconds)\n", elapsed_seconds.count());
@@ -288,6 +334,8 @@ int Solve(int max_tries = kTries) {
     std::string queried = GetActualQuery();
     int code = GetQueriedResult();
 #endif
+    hints.push_back({queried, code});
+
     if (code == kQuinticOfThree - 1) {
       return turn + 1;
     }
